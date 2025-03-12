@@ -17,7 +17,7 @@ s = control.TransferFunction.s
 #    Plant Setup
 #
 
-Plant = 0.8/(s+0.8)
+Plant = 0.8/(s+0.8)   # Example
 
 ###############################################
 #
@@ -30,18 +30,27 @@ cdi['Name'] = 'Setup Example Controller'
 
 # Constant single gain controller
 # cdi['Ctype']  = 'Kct'  # a single gain controller
-# cdi['Params'] = [ 0.5 ]  # example K=4
+# cdi['Params'] = [ 21]  # example K=4
 # cdi['Pnames'] = [ 'K' ]
 
 # Lead-Lag Compensator
-cdi['Ctype'] = 'LLC'  # lead/lag compensator controller
-cdi['Params'] = [60,  -1, -4]  # example [ K, pole, zero]
-cdi['Pnames'] = ['K', 'pole', 'zero']
+# cdi['Ctype'] = 'LLC'  # lead/lag compensator controller
+# cdi['Params'] = [60,  -1, -4]  # example [ K, pole, zero]
+# cdi['Pnames'] = ['K', 'pole', 'zero']
 
 # PID Controller
-# cdi['Ctype'] = 'PID'  # PID controller
-# cdi['Params'] = [ 10, 5, 2.0 ]  # example Kp, Ki, Kd
-# cdi['Pnames'] = ['Kp','Ki','Kd']
+cdi['Ctype'] = 'PID'  # PID controller
+
+cdi['Params'] = [ 100, 5, 2.0 ]  # example Kp, Ki, Kd
+cdi['Params'] = [ , 1.5, .7 ]  # example Kp, Ki, Kd
+
+
+z1 = -2
+z2 = -0.25
+cdi['Params'] = cd447.PIDKsFromZeros(1.0, z1, z2)  # example Kp, Ki, Kd
+print('Initializing PID with: ', cdi['Params'])
+#  A good optimum: 48.5, .577, .752
+cdi['Pnames'] = ['Kp','Ki','Kd']
 
 contObj = cd447.controller(cdi) # instantiate the controller as above
 
@@ -57,15 +66,15 @@ SPd['plant'] = Plant
 SPd['controller'] = contObj
 
 # Desired Performance target
-SPd['tsd']         =   0.5  # Desired settling time (sec)
+SPd['tsd']         =   0.4  # Desired settling time (sec)
 SPd['pod']         =    10  # Desired overshoot ratio (e.g. 10%)
 SPd['ssed']        =  0.01  # Desired steady state error
-SPd['cu_max']      =    20  # Desired Maximum control effort (arbitrary units)
+SPd['cu_max']      =      # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  5  # Search range multiplier
-SPd['nvals']       =  9  # Number of points per parameter
+SPd['scale_range'] =  1.50  # Search range multiplier
+SPd['nvals']       =  12  # Number of points per parameter
 SPd['tmax']        =  3*SPd['tsd']         #maximum simulation time
 SPd['dt']          =  3*SPd['tsd']/1500    # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)

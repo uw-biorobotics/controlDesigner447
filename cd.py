@@ -67,14 +67,17 @@ def PIDZerosFromKs(Kp,Ki,Kd):
     return (z1,z2)
 
 def get_features(c):
-    poles = np.poles(c)
-    zeros = np.zeros(c)
+    poles = control.poles(c)
+    zeros = control.zeros(c)
+    # print('get_features: poles, zeros: ', poles, zeros)
     features = []
     for p in poles:
         features.append(np.real(p))
     for z in zeros:
         features.append(np.real(z))
-    return features.sort()
+    # print('get_features():',c, ' returning ',sorted(features) )
+    # print('type (features): ',features[0], type(features[0]))
+    return sorted(features)
 
 def checkGainType(K):
     #
@@ -177,7 +180,7 @@ class controller:
         ############ PID
         if self.ctype == 'PID':
             try:
-                gains = d['gains'] = params
+                gains =  params
             except:
                 error(eid + ' Illegal PID parameters')
             if len(gains) != 3:
@@ -232,7 +235,7 @@ class controller:
             error('controller.PID: Both gains AND zeros should not be specified')
 
         if gains:
-            if Kd != K:
+            if K != self.params[2]:
                 error('controller: Please set the K parameter equal to Kd')
             self.params = gains
 
@@ -247,6 +250,8 @@ class controller:
         regsys = np.abs(regpole) / (s-regpole)
 
         Cont = regsys * Kd*(s*s + (Kp/Kd)*s + Ki/Kd)/s
+        print('regpole = ',regpole)
+        print('features(cont1): ', get_features(cont1))
         self.name = 'PID'
         return Cont
 
