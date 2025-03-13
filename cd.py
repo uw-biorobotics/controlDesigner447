@@ -126,7 +126,7 @@ def estimate_time(d):
         with open('simrate_optigain.txt', 'r') as file:
             rate = int(file.read().strip())
         TicksPermin = rate
-        print(f"Found rate file: {rate} simulation ticks per min.")
+        print(f"Found rate file: {rate:,} simulation ticks per min.")
     except FileNotFoundError:
         TicksPermin = 3500000   # works for BH!
 
@@ -267,8 +267,8 @@ class controller:
         regsys = np.abs(regpole) / (s-regpole)
 
         Cont = regsys * Kd*(s*s + (Kp/Kd)*s + Ki/Kd)/s
-        print('regpole = ',regpole)
-        print('features(cont1): ', get_features(cont1))
+        # print('regpole = ',regpole)
+        # print('features(cont1): ', get_features(cont1))
         self.name = 'PID'
         return Cont
 
@@ -705,7 +705,7 @@ def graphResults(R,title='ECE447, Sp25', wsnames=None):
     for sn in wsnames:
         # Define controller
         CtlObj = R['Controller']
-        CtlObj.update(R['OptParams'][sn])
+        CtlObj.updateParams(R['OptParams'][sn])
         Ctl_TF = CtlObj.generate()
         sys = control.feedback(Ctl_TF * R['Plant'], H)
         T,Y = control.step_response(sys, t)
