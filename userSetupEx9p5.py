@@ -5,6 +5,7 @@ import cd as cd447
 # eventually delete
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 #
 # Control Design problem definition file template
@@ -56,6 +57,10 @@ cdi['Params'] = [56.50, 28.00, 84.00]  # after RL (bad SSE)
 cdi['Params'] = [56.50, 28.00, 40]  # after 1st Optim.
 cdi['Params'] = [54, 40.00, 20]  # after 2nd Optim.
 cdi['Params'] = [260, 129, 4.6]  # Reset to NISE gains.
+cdi['Params'] = [238, 150,  2.0]  # NISE + 1round -> CLOSE!
+cdi['Params'] = [300, 120,  1]  # NISE + 2round --> very close on Ts
+
+
 
 print('Initializing PID with: ', cdi['Params'])
 #  A good optimum: 48.5, .577, .752
@@ -83,10 +88,10 @@ SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  2  # Search range multiplier
-SPd['nvals']       =  12  # Number of points per parameter
-SPd['tmax']        =  10*SPd['tsd']         #maximum simulation time
-SPd['dt']          =  SPd['tmax']/15000    # Time step ( heuristic)
+SPd['scale_range'] =  2.7  # Search range multiplier
+SPd['nvals']       =  15  # Number of points per parameter
+SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
+SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
 
 print(f'Starting {task}')
