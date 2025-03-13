@@ -53,6 +53,10 @@ def get_control_effort(ctl, plant, H, t):
 #   Utility functions
 #
 
+def rms447(x):
+    x = np.array(x) # if its a list e.g.
+    return np.sqrt(np.mean(x**2))
+
 def error(msg):
     print('\n\nError: ', msg)
     quit()
