@@ -60,7 +60,7 @@ def error(msg):
 def PIDKsFromZeros(Kd,z1,z2):
     Kp= -1 * np.real(z1+z2)*Kd
     Ki = np.real(z1*z2)*Kd
-    return (Kp, Ki, Kd)
+    return ([Kp, Ki, Kd])
 
 def PIDZerosFromKs(Kp,Ki,Kd):
     z1,z2 = np.roots([1, Kp/Kd, Ki/Kd])
@@ -212,6 +212,20 @@ class controller:
                 error(eid + ' Illegal data type for constant gain: '+str(K))
             return self.ConstCtl([K])
 
+    def updateK(self, K):
+        if self.ctype == 'PID':
+            self.params[2] = K  # traditional order Kp,Ki,Kd
+        else:
+            self.params[0] = K  # the other controller types
+        return
+
+    def updateParams(self, pvect):
+        eid = 'Controller.updateParams: '
+        if type(pvect) != type([1,2,3]):
+            error(eid+' new paramters must be a list')
+        if len(pvect) != len(self.pnames):
+            error(eid = 'wrong number of params given. Should be '+str(len(self.pnames)))
+        self.params = pvect
 
     def PID(self, K, gains=None, zeros=None):
         #
@@ -221,6 +235,7 @@ class controller:
         #   Two possible input vectors:  gains: [K, Ki,Kd]
         #                                zeros: [K, z1,z2]
         # K = Kd (yes, repeat it if gains are the input vector)
+        eid = 'Controller.PID: '
         s = control.TransferFunction.s
         # regularization_separation is distance ratio of reg. pole
         #       to most negative system feature
@@ -228,6 +243,8 @@ class controller:
         #
         #  some error checks
         if gains is not None and len(gains)==3:  # set new gains if appropriate
+            if type(gains) != type([1,2,3]):
+                error(eid+' gains argument must be a vector')
             self.params=gains
         if gains is None and zeros is None:
             error('controller.PID: No gains or zeros given')
@@ -236,7 +253,7 @@ class controller:
 
         if gains:
             if K != self.params[2]:
-                error('controller: Please set the K parameter equal to Kd')
+                error(eid + 'Please set the K parameter equal to Kd')
             self.params = gains
 
         if zeros:
@@ -282,7 +299,7 @@ class controller:
 
         self.params = p      # what to optimize
         norm = np.abs(pole/zero)
-        Cont = K * norm * (s-zero)/(s-pole)  # now K is magnitude @ s=0
+        Cont = K * norm * ((s-zero)/(s-pole))  # now K is magnitude @ s=0
         self.name = 'LeadLag'
         return Cont
 
@@ -462,7 +479,7 @@ def optimize_ctl(plant, CtlObj, SPd):
                     #
                     #  set params for the controller under test
                     #
-                    CtlObj.params = [P1,P2,P3]
+                    CtlObj.updateParams([P1,P2,P3])
                     #
                     #   Evaluate cost of this controller
                     #
@@ -504,7 +521,7 @@ def optimize_ctl(plant, CtlObj, SPd):
                 #
                 #  Build the controller under test
                 #
-                CtlObj.params = [P1,P2]
+                CtlObj.updateParams([P1,P2])
                 #
                 #   Evaluate cost of this controller
                 #
@@ -544,7 +561,7 @@ def optimize_ctl(plant, CtlObj, SPd):
             #
             #  Build the controller under test
             #
-            CtlObj.params = [P1]
+            CtlObj.updateParams([P1])
             #
             #   Evaluate cost of this controller
             #
@@ -650,7 +667,7 @@ def printResults(R):
         print('\n\nReporting: ',scheme)
         params = R['OptParams'][scheme]
         CtlObj = R['Controller']
-        CtlObj.params = params     # set the current params for printing
+        CtlObj.updateParams(params)     # set the current params for printing
         Ctl_TF = CtlObj.generate()
 
         #
@@ -688,7 +705,7 @@ def graphResults(R,title='ECE447, Sp25', wsnames=None):
     for sn in wsnames:
         # Define controller
         CtlObj = R['Controller']
-        CtlObj.params = R['OptParams'][sn]
+        CtlObj.update(R['OptParams'][sn])
         Ctl_TF = CtlObj.generate()
         sys = control.feedback(Ctl_TF * R['Plant'], H)
         T,Y = control.step_response(sys, t)
