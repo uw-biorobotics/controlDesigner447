@@ -58,7 +58,15 @@ cdi['Params'] = [56.50, 28.00, 40]  # after 1st Optim.
 cdi['Params'] = [54, 40.00, 20]  # after 2nd Optim.
 cdi['Params'] = [260, 129, 4.6]  # Reset to NISE gains.
 cdi['Params'] = [238, 150,  2.0]  # NISE + 1round -> CLOSE!
-cdi['Params'] = [300, 120,  1]  # NISE + 2round --> very close on Ts
+cdi['Params'] = [190, 120,  .6]  # NISE + 2round --> very close on Ts
+cdi['Params'] = [129, 132,  .72]  # NISE + 3round --> very close on Ts try 10% gains boost
+cdi['Params'] = [1.3*190, 1.3*120,  1.3*0.6]  # NISE + 4round -->right direction on Ts try 30% gains boost
+cdi['Params'] = [1.5*190, 1.5*120,  1.5*0.6]  # NISE + 4round: try 50% gains boost
+cdi['Params'] = [3*190, 4*120,  4*0.6]  # NISE + 4round: try 2x gains boost
+# BINGO  Now exhaustive fine tuning
+cdi['Params'] = [400, 392, 1.0]  # moved past boundary
+cdi['Params'] = [300, 320, .75]  # final mega search
+cdi['Params'] = [300, 204, .75]  # final mega search
 
 
 
@@ -81,18 +89,30 @@ SPd['plant'] = Plant
 SPd['controller'] = contObj
 
 # Desired Performance target
-SPd['tsd']         =   0.4  # Desired settling time (sec)
+SPd['tsd']         =   0.6  # Desired settling time (sec)
 SPd['pod']         =    20  # Desired overshoot ratio (e.g. 10%)
 SPd['ssed']        =  0.01  # Desired steady state error
 SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  2.7  # Search range multiplier
-SPd['nvals']       =  15  # Number of points per parameter
+SPd['scale_range'] =  1.4  # Search range multiplier
+SPd['nvals']       =  8   # Number of points per parameter
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
+
+#
+# Sanity check SpD
+#
+delta = 100*SPd['scale_range']**(1.0/SPd['nvals'])-100  # %age change per step
+if delta < 3.0:  # 3%
+    print(f' Warning: parameter delta is less than 3%')
+    print(f'     nvals: {SPd['nvals']}    range: {SPd['scale_range']:4.2f}')
+    print(f'     effective delta {delta:4.2f}%')
+    print('    consider larger range or fewer nvals.')
+    x = input(' To continue, <CR>')
+
 
 print(f'Starting {task}')
 

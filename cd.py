@@ -192,7 +192,7 @@ class controller:
             return self.PID(gains[2], gains=gains)
 
         ############ Lead Lag
-        if self.ctype == 'LLC':  # lead-lag controller
+        if self.ctype == 'LLC':  # lead OR lag controller
             try:
                 K = params[0]
                 assert K>0
