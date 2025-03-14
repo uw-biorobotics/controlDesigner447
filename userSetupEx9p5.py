@@ -23,6 +23,9 @@ if task not in allowedTasks:
     cd447.error(task + ' is not a recognized task '+str(allowedTasks))
 
 
+
+
+
 ###############################################
 # #
 #    Plant Setup
@@ -38,43 +41,32 @@ Plant = (s+8)/((s+3)*(s+6)*(s+10))   # Example 9.5 Nise Book
 #
 #   controller info goes in a dictionary:
 #
-cdi = {}
-cdi['Name'] = 'Nise Example 9.5 Controller'
+controllerD = {}
+controllerD['Name'] = 'Nise Example 9.5 Controller'
 
 # Constant single gain controller
-# cdi['Ctype']  = 'Kct'  # a single gain controller
-# cdi['Params'] = [ 21]  # example K=4
-# cdi['Pnames'] = [ 'K' ]
+# controllerD['Ctype']  = 'Kct'  # a single gain controller
+# controllerD['Params'] = [ 21]  # example K=4
+# controllerD['Pnames'] = [ 'K' ]
 
 # Lead-Lag Compensator
-# cdi['Ctype'] = 'LLC'  # lead/lag compensator controller
-# cdi['Params'] = [60,  -1, -4]  # example [ K, pole, zero]
-# cdi['Pnames'] = ['K', 'pole', 'zero']
+# controllerD['Ctype'] = 'LLC'  # lead/lag compensator controller
+# controllerD['Params'] = [60,  -1, -4]  # example [ K, pole, zero]
+# controllerD['Pnames'] = ['K', 'pole', 'zero']
 
 # PID Controller
-cdi['Ctype'] = 'PID'  # PID controller
-cdi['Params'] = [56.50, 28.00, 84.00]  # after RL (bad SSE)
-cdi['Params'] = [56.50, 28.00, 40]  # after 1st Optim.
-cdi['Params'] = [54, 40.00, 20]  # after 2nd Optim.
-cdi['Params'] = [260, 129, 4.6]  # Reset to NISE gains.
-cdi['Params'] = [238, 150,  2.0]  # NISE + 1round -> CLOSE!
-cdi['Params'] = [190, 120,  .6]  # NISE + 2round --> very close on Ts
-cdi['Params'] = [129, 132,  .72]  # NISE + 3round --> very close on Ts try 10% gains boost
-cdi['Params'] = [1.3*190, 1.3*120,  1.3*0.6]  # NISE + 4round -->right direction on Ts try 30% gains boost
-cdi['Params'] = [1.5*190, 1.5*120,  1.5*0.6]  # NISE + 4round: try 50% gains boost
-cdi['Params'] = [3*190, 4*120,  4*0.6]  # NISE + 4round: try 2x gains boost
-# BINGO  Now exhaustive fine tuning
-cdi['Params'] = [400, 392, 1.0]  # moved past boundary
-cdi['Params'] = [300, 320, .75]  # final mega search
-cdi['Params'] = [300, 204, .75]  # final mega search
+controllerD['Ctype'] = 'PID'
+z1 = -56
+z2 =  -6
+controllerD['zeros'] = [-56, -.5]
+controllerD['Params']= cd447.PIDKsFromZeros(1.0, -56, -.5)  # Nise initial design
+controllerD['RegSep'] = 20  # how far to separate regularization pole
 
-
-
-print('Initializing PID with: ', cdi['Params'])
+print('Initializing PID with: ', controllerD['Params'])
 #  A good optimum: 48.5, .577, .752
-cdi['Pnames'] = ['Kp','Ki','Kd']
+controllerD['Pnames'] = ['Kp','Ki','Kd']
 
-contObj = cd447.controller(cdi) # instantiate the controller as above
+contObj = cd447.controller(controllerD) # instantiate the controller as above
 
 
 
@@ -84,8 +76,8 @@ contObj = cd447.controller(cdi) # instantiate the controller as above
 #
 # Search Parameter Dictionary
 SPd = {}
-SPd['Name'] = cdi['Name']
-SPd['plant'] = Plant
+SPd['Name'] = controllerD['Name']
+SPd['Plant_TF'] = Plant
 SPd['controller'] = contObj
 
 # Desired Performance target
@@ -96,8 +88,8 @@ SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  1.4  # Search range multiplier
-SPd['nvals']       =  8   # Number of points per parameter
+SPd['scale_range'] =  50 # Search range multiplier
+SPd['nvals']       =  20   # Number of points per parameter
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
@@ -105,13 +97,14 @@ SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO'
 #
 # Sanity check SpD
 #
-delta = 100*SPd['scale_range']**(1.0/SPd['nvals'])-100  # %age change per step
-if delta < 3.0:  # 3%
-    print(f' Warning: parameter delta is less than 3%')
-    print(f'     nvals: {SPd['nvals']}    range: {SPd['scale_range']:4.2f}')
-    print(f'     effective delta {delta:4.2f}%')
-    print('    consider larger range or fewer nvals.')
-    x = input(' To continue, <CR>')
+if task=='Optimize':
+    delta = 100*SPd['scale_range']**(1.0/SPd['nvals'])-100  # %age change per step
+    if delta < 3.0:  # 3%
+        print(f' Warning: parameter delta is less than 3%')
+        print(f'     nvals: {SPd['nvals']}    range: {SPd['scale_range']:4.2f}')
+        print(f'     effective delta {delta:4.2f}%')
+        print('    consider larger range or fewer nvals.')
+        x = input(' To continue, <CR>')
 
 
 print(f'Starting {task}')
@@ -147,149 +140,17 @@ if task == 'Optimize':
 
 if task == 'Rlocus':
 
-    contObj = cd447.controller(cdi) # instantiate the controller as above
+    contObjRev =  cd447.RlocusWrapper(controllerD,Plant)
 
-    #########################################################################
-    # customize plot output for your specs
-    #
-    tsd = 0.4
-    tmax = 4.0 * tsd
-    plotHeight = 1.5 # step plus overshoot
-
-    contObj.regSep = 10   # How far away is your reg pole?
-
-    # make the controller TF
-    C_TF = contObj.generate()
-
-    INTERACTIVE = True
-
-    if INTERACTIVE:
-
-        plt.figure(figsize=(12,12))
-
-        # gainrange = np.arange(0.0, 100, 0.01)
-        # Root Locus argument is loop gain, CPH(s)
-        control.root_locus_plot(C_TF*Plant) #, gains=gainrange)
-
-        plt.show()
-
-
-        #
-        ##     Get gain(s) from RL click point
-        #
-
-        # ask user for click info from RL
-        K = input('\n\n          What gain did you click? (x to quit) ')
-
-        try:
-            Kcl = float(K)  # closed loop gain constant
-        except:
-            quit() # e.g. enter 'x' to quit
-
-        #
-        # plR = float(input('Real part of pole? '))
-        # plI = float(input('Imag part of pole? '))
-        # J = 0+1j
-        # poleloc = plR + J*plI
-
-    else:  # if you're debugging and dont want to input same point over and over
-        # use this:
-        Kcl = xxx
-
-    contObj.updateK(Kcl) # update controller scalar gain
-
-
-    Kd = Kcl
-
-    print('  New Parameters: ')
-    for n in contObj.pnames:
-        print(f' {n:10}',end='')
-    print('')
-    for p in contObj.params:
-        print(f' {p:10.2f}',end='')
-    print('')
-
-    # print(f'Kp,Ki,Kd: {Kp:10.3f}, {Ki:10.3f}, {Kd:10.3f} ')
-    # print(f'            {Kp:10.3e}, {Ki:10.3e}, {Kd:10.3e} ')
-
-
-
-    # new controller TF with the clicked gain and with regularization
-    C2_TF = contObj.generate()
-
-    print('Computed OL poles(C2P(s), K) = ', control.poles(C2_TF*Plant))
-    print('Computed OL zeros(C2_TFP(s), K) = ', control.zeros(C2_TF*Plant))
-    print('Computed CL poles(C2_TFP(s), K) = ', control.poles(control.feedback(C2_TF*Plant,1)) )
+    controllerD_SR2 = controllerD
+    controllerD_SR2['Params'] = contObjRev.params  # revised gains from clicked point
 
     task = 'StepResponse'  # plot it!
 
-
 if task == 'StepResponse':
-    print('!!!!  Got here')
-    tmax = SPd['tmax']
-    tsd  = SPd['tsd']
-    ProbName = SPd['Name']
-    #
-    #  Now step response of the designed controller and plant
-    #
-    plotHeight = 1.5
-    CstepPlot = contObj.generate()
-    t = np.linspace(0, tmax, 400)
-    fig, ax = plt.subplots(1,2,figsize=(16,8))
 
-    #
-    # left box: step response
-    #
-    sys = control.feedback(CstepPlot*Plant,1)
-    _,y1 = control.step_response(sys,t)
-    # compensate for gain adjustment in plant
-    ax[0].plot(t,y1)
-    ax[0].set_title('Step Response')
-    ax[0].set_xlim([0,tmax])
-    # ax[0].set_ylim([0,2.0])
-    ax[0].grid()
+    cd447.StepResponseWrapper(SPd, controllerD_SR2)
 
-    # Horizontal window for Ts
-    for limit in [0.98, 1.02]:
-        ax[0].plot([tsd, tmax], [limit, limit], 'r')  # Ts response goal
-    # vertical Ts deadline
-    ax[0].plot( [tsd, tsd], [0, plotHeight], 'g')  # Ts goal
-
-
-    #
-    # right box: control effort
-    H=1
-    CE = control.feedback(CstepPlot, Plant*H)
-
-    _,y2 = control.step_response(CE,t)
-
-    #
-    #  there seems to be a glitch with control effort
-    #   for FIRST simulation sample
-    t = t[1:]   # skip first sample
-    y2 = y2[1:]
-    ax[1].plot(t,y2)
-    ax[1].set_title('Control Effort')
-    # ax[1].set_xlim([0,tmax])
-    # ax[1].set_ylim([-45, 45])
-    ax[1].grid()
-
-
-    fig.suptitle(ProbName)
-
-    ts = cd447.settle_time(t,y1)
-    pctOS = cd447.PCTovershoot(t,y1)
-    sse = cd447.steady_state_error(t,y1)
-
-    print('Performance Report:')
-    print(f'Peak Control effort:     {max(y2[3:]):10.3f}')  # skip transient
-    print(f'RMS Control effort:      {cd447.rms447(y2[3:]):10.3f}')
-
-    print(f'Ts:      {ts:10.3f}')
-    print(f'%os:     {pctOS:10.3f}')
-    print(f'SSE:     {sse:10.3f}')
-
-    plt.show()
 
 
 

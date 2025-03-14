@@ -17,7 +17,7 @@ import time
 #   Performance Evaluator Functions
 #
 
-def settle_time(t: np.ndarray, y: np.ndarray, threshold: float = 0.02) -> float:
+def settle_time(t: np.ndarray, y: np.ndarray, threshold = 0.02) -> float:
     """Calculate settling time (time to reach and stay within ±2% of 1.0)"""
     final_value = y[-1]
     Amp = 1.0
@@ -30,11 +30,6 @@ def settle_time(t: np.ndarray, y: np.ndarray, threshold: float = 0.02) -> float:
         if (y[i] > ts_maxval) or (y[i] < ts_minval):
             return t[i]
     return t[0]
-#
-# def XXovershoot(t: np.ndarray, y: np.ndarray) -> float:
-#     """Calculate maximum overshoot as a ratio (Amp = no overshoot)"""
-#     # return max(y) / y[-1]
-#     return max(y)  # since input is UNIT step.
 
 def PCTovershoot(t, y, amp=1.0):
     return 100*(max(y)-amp)/amp
@@ -43,9 +38,9 @@ def steady_state_error(t: np.ndarray, y: np.ndarray, goal=1.0):
     """Calculate steady state error"""
     return abs(goal - y[-1])
 
-def get_control_effort(ctl, plant, H, t):
+def get_control_effort(ctlTF, Plant_TF, H, t):
         # get control effort with system transformation
-        _, u = control.step_response(control.feedback(ctl, plant*H), t)
+        _, u = control.step_response(control.feedback(ctlTF, Plant_TF*H), t)
         return u
 
 
@@ -157,6 +152,7 @@ def compute_time(d,start_time):
 
 class controller:
     def __init__(self,d):
+
         try:
             self.name = d['Name']
             if d['Ctype'] not in ['PID','LLC', 'Kct']:
@@ -167,7 +163,13 @@ class controller:
         except:
             error('controller: missing terms in setup dict.')
 
-        self.regSep = 20  # separation of regularization pole (if needed e.g. PID)
+        if d['Ctype'] == 'PID': # PID specific info
+            try:
+                self.zeros = d['zeros']
+                self.regSep = d['RegSep']  # separation of regularization pole (if needed e.g. PID)
+            except:
+                error('controller: Missing information for PID controller: Zeros and RegSep')
+
         self.params = d['Params']
         self.pnames = d['Pnames']
 
@@ -216,9 +218,13 @@ class controller:
                 error(eid + ' Illegal data type for constant gain: '+str(K))
             return self.ConstCtl([K])
 
-    def updateK(self, K):
+    def updateK(self, K):  #update from a new Kd value
+        z1 = self.zeros[0]
+        z2 = self.zeros[1]
+        newGains = PIDKsFromZeros(K, z1, z2)
         if self.ctype == 'PID':
-            self.params[2] = K  # traditional order Kp,Ki,Kd
+            self.params = newGains
+            print(self.name, ' New PID params: ', self.params)
         else:
             self.params[0] = K  # the other controller types
         return
@@ -322,12 +328,12 @@ class controller:
 #
 #   Evaluate Performance of a specific controller instance
 #
-def cost_eval(plant, CtlObj, t):
-    # plant:   a python.control.LTI object
+def cost_eval(Plant_TF, CtlObj, t):
+    # Plant_TF:   a python.control.LTI object
     # CtlObj:     a Controller object. (.generate())
 
     """
-    Evaluate controller performance (of a plant(TF) and a Controller Object)
+    Evaluate controller performance (of a Plant_TF(TF) and a Controller Object)
     Returns: ts, po, ss, cu, gm, y
     ts - settling time
     po - overshoot ratio
@@ -343,15 +349,15 @@ def cost_eval(plant, CtlObj, t):
 
     try:
         Ctl_TF = CtlObj.generate()
-        sys = control.feedback(Ctl_TF * plant, H)
+        sys = control.feedback(Ctl_TF * Plant_TF, H)
     except:
-        print(' >>>  Controller: ', Ctl_TF, Plant)
+        print(' >>>  Controller: ', Ctl_TF, Plant_TF)
         error('\n >>> feedback system creation fail: Is controller proper?\n')
 
     # Closed loop system
     try:
-        sys = control.feedback(Ctl_TF * plant, H)
-        loop_gain = Ctl_TF * plant * H
+        sys = control.feedback(Ctl_TF * Plant_TF, H)
+        loop_gain = Ctl_TF * Plant_TF * H
 
         # Get gain margin
         gm, pm, wg, wp = control.margin(loop_gain)
@@ -366,7 +372,7 @@ def cost_eval(plant, CtlObj, t):
 
         # Get response and control effort
         t_out, y = control.step_response(sys, t)
-        u = get_control_effort(Ctl_TF, plant, H, t)
+        u = get_control_effort(Ctl_TF, Plant_TF, H, t)
         ts = settle_time(t, y)
         pctOvershoot = PCTovershoot(t, y, y[-1]) # defined relative to final value not 1.0
         ss = steady_state_error(t, y)
@@ -393,7 +399,7 @@ def cost_eval(plant, CtlObj, t):
 # SPd['gm_db']       =     # Desired gain margin in dB
 # SPd['reportScheme']=    # which weights to print limit report on
 
-def optimize_ctl(plant, CtlObj, SPd):
+def optimize_ctl(Plant_TF, CtlObj, SPd):
 
     # unpack the search params.
     scale_range = SPd['scale_range']       # Search range multiplier
@@ -487,7 +493,7 @@ def optimize_ctl(plant, CtlObj, SPd):
                     #
                     #   Evaluate cost of this controller
                     #
-                    ts1, pos1, ss, cu, gmr, y = cost_eval(plant, CtlObj,t)
+                    ts1, pos1, ss, cu, gmr, y = cost_eval(Plant_TF, CtlObj,t)
 
                     #
                     #  Deterrmine optimality
@@ -529,7 +535,7 @@ def optimize_ctl(plant, CtlObj, SPd):
                 #
                 #   Evaluate cost of this controller
                 #
-                ts1, pos1, ss, cu, gmr, y = cost_eval(plant, CtlObj, t)
+                ts1, pos1, ss, cu, gmr, y = cost_eval(Plant_TF, CtlObj, t)
 
                 #
                 #  Deterrmine optimality
@@ -569,7 +575,7 @@ def optimize_ctl(plant, CtlObj, SPd):
             #
             #   Evaluate cost of this controller
             #
-            ts1, pos1, ss, cu, gmr, y = cost_eval(plant, CtlObj, t)
+            ts1, pos1, ss, cu, gmr, y = cost_eval(Plant_TF, CtlObj, t)
 
             #
             #  Determine optimality
@@ -624,8 +630,8 @@ def optimize_ctl(plant, CtlObj, SPd):
     goals['cu_max'] = cu_max
     goals['gm_db'] = gm_db
     optResults['Goals'] = goals
-    optResults['Controller'] = CtlObj  #  cd447.controller() object
-    optResults['Plant'] = plant        # control.TransferFunction()
+    optResults['Controller'] = CtlObj  #  controller() object
+    optResults['Plant_TF'] = Plant_TF        # control.TransferFunction()
 
 
     #
@@ -688,7 +694,7 @@ def printResults(R):
         #     print(f"[{weight_strings[scheme]:20s} Kp: {Kp_opt[scheme]:6.3f}  Ki: {Ki_opt[scheme]:6.3f}  Kd: {Kd_opt[scheme]:6.3f}  ")
         # print(f"(Kp, Ki, Kd = {Kp_opt[scheme]:12.9f}, {Ki_opt[scheme]:12.9f},  {Kd_opt[scheme]:12.9f} ) ")
         ## cost_eval
-        ts, pctOS, ss, cu, gm_db , y = cost_eval(R['Plant'], CtlObj , t)
+        ts, pctOS, ss, cu, gm_db , y = cost_eval(R['Plant_TF'], CtlObj , t)
 
         print(f'Settling Time: {ts:6.3f}  Overshoot: {pctOS:6.3f} %   SSE: {ss:6.3f} Ctl Effort: {cu:6.3f}   Gain Marg: {gm_db:6.1f} dB  ]')
 
@@ -711,7 +717,7 @@ def graphResults(R,title='ECE447, Sp25', wsnames=None):
         CtlObj = R['Controller']
         CtlObj.updateParams(R['OptParams'][sn])
         Ctl_TF = CtlObj.generate()
-        sys = control.feedback(Ctl_TF * R['Plant'], H)
+        sys = control.feedback(Ctl_TF * R['Plant_TF'], H)
         T,Y = control.step_response(sys, t)
         plt.plot(T,Y)
 
@@ -735,5 +741,144 @@ def graphResults(R,title='ECE447, Sp25', wsnames=None):
     plt.grid()
 
 
+def RlocusWrapper(controllerD,Plant_TF):
+
+    contObj = controller(controllerD)   # instantiate the controller object
+
+    #########################################################################
+    # customize plot output for your specs
+    #
+    tsd = 0.4
+    tmax = 4.0 * tsd
+    plotHeight = 1.5 # step plus overshoot
+
+    contObj.regSep = 10   # How far away is your reg pole?
+
+    # make the controller TF
+    C_TF = contObj.generate()
+
+    INTERACTIVE = True
+
+    if INTERACTIVE:
+
+        plt.figure(figsize=(12,12))
+
+        # gainrange = np.arange(0.0, 100, 0.01)
+        # Root Locus argument is loop gain, CPH(s)
+        control.root_locus_plot(C_TF*Plant_TF) #, gains=gainrange)
+
+        plt.show()
 
 
+        #
+        ##     Get gain(s) from RL click point
+        #
+
+        # ask user for click info from RL
+        K = input('\n\n          What gain did you click? (x to quit) ')
+
+        try:
+            Kcl = float(K)  # closed loop gain constant
+        except:
+            quit() # e.g. enter 'x' to quit
+
+        #
+        # plR = float(input('Real part of pole? '))
+        # plI = float(input('Imag part of pole? '))
+        # J = 0+1j
+        # poleloc = plR + J*plI
+
+    else:  # if you're debugging and dont want to input same point over and over
+        # use this:
+        Kcl = xxx
+
+
+
+    contObj.updateK(Kcl) # update controller scalar gain
+
+
+    print('  New {controllerD} Parameters: ')
+    for n in contObj.pnames:
+        print(f'     {n:10}',end='')
+    print('')
+    for p in contObj.params:
+        print(f' {p:10.2f}',end='')
+    print('')
+
+    # new controller TF with the clicked gain and with regularization
+    C2_TF = contObj.generate()
+
+    print('Computed OL poles(C2P(s), K) = ',    control.poles(C2_TF*Plant_TF))
+    print('Computed OL zeros(C2_TFP(s), K) = ', control.zeros(C2_TF*Plant_TF))
+    print('Computed CL poles(C2_TFP(s), K) = ', control.poles(control.feedback(C2_TF*Plant_TF,1)) )
+
+    return contObj  # now updated with click point values
+
+
+def StepResponseWrapper(searchD,controllerD):
+    contObj = controller(controllerD)   # instantiate the controller object
+    Plant_TF = searchD['Plant_TF']
+    tmax = searchD['tmax']
+    tsd  = searchD['tsd']
+    ProbName = searchD['Name']
+    #
+    #  Now step response of the designed controller and Plant_TF
+    #
+    plotHeight = 1.5
+    CstepPlot = contObj.generate()
+    t = np.linspace(0, tmax, 400)
+    fig, ax = plt.subplots(1,2,figsize=(16,8))
+
+    #
+    # left box: step response
+    #
+    sys = control.feedback(CstepPlot*Plant_TF,1)
+    _,y1 = control.step_response(sys,t)
+    # compensate for gain adjustment in Plant_TF
+    ax[0].plot(t,y1)
+    ax[0].set_title('Step Response')
+    ax[0].set_xlim([0,tmax])
+    # ax[0].set_ylim([0,2.0])
+    ax[0].grid()
+
+    # Horizontal window for Ts
+    for limit in [0.98, 1.02]:
+        ax[0].plot([tsd, tmax], [limit, limit], 'r')  # Ts response goal
+    # vertical Ts deadline
+    ax[0].plot( [tsd, tsd], [0, plotHeight], 'g')  # Ts goal
+
+
+    #
+    # right box: control effort
+    H=1
+    CE = control.feedback(CstepPlot, Plant_TF*H)
+
+    _,y2 = control.step_response(CE,t)
+
+    #
+    #  there seems to be a glitch with control effort
+    #   for FIRST simulation sample
+    t = t[1:]   # skip first sample
+    y2 = y2[1:]
+    ax[1].plot(t,y2)
+    ax[1].set_title('Control Effort')
+    # ax[1].set_xlim([0,tmax])
+    # ax[1].set_ylim([-45, 45])
+    ax[1].grid()
+
+
+    fig.suptitle(ProbName)
+
+    ts = settle_time(t,y1)
+    pctOS = PCTovershoot(t,y1)
+    sse = steady_state_error(t,y1)
+
+    print('Performance Report:')
+    print(f'Peak Control effort:     {max(y2[3:]):10.3f}')  # skip transient
+    print(f'RMS Control effort:      {rms447(y2[3:]):10.3f}')
+
+    print(f'Ts:      {ts:10.3f}')
+    print(f'%os:     {pctOS:10.3f}')
+    print(f'SSE:     {sse:10.3f}')
+
+    plt.show()
