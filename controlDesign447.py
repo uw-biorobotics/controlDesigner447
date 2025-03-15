@@ -223,8 +223,8 @@ class controller:
         z2 = self.zeros[1]
         newGains = PIDKsFromZeros(K, z1, z2)
         if self.ctype == 'PID':
-            self.params = newGains
-            print(self.name, ' New PID params: ', self.params)
+            self.updateParams(newGains)
+            # print(self.name, ' New PID params: ', self.params)
         else:
             self.params[0] = K  # the other controller types
         return
@@ -797,7 +797,7 @@ def RlocusWrapper(controllerD,Plant_TF):
     contObj.updateK(Kcl) # update controller scalar gain
 
 
-    print('  New {controllerD} Parameters: ')
+    print(f'  New {controllerD["Name"]} Parameters: ')
     for n in contObj.pnames:
         print(f'     {n:10}',end='')
     print('')

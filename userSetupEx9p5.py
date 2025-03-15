@@ -1,6 +1,6 @@
 import control
 import sys
-import cd as cd447
+import controlDesign447 as cd447
 
 # eventually delete
 import matplotlib.pyplot as plt
