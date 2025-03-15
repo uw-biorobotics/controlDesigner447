@@ -53,7 +53,7 @@ def rms447(x):
     return np.sqrt(np.mean(x**2))
 
 def error(msg):
-    print('\n\nError: ', msg)
+    print('\n\nError: ', msg,'\n\n')
     quit()
 
 def PIDKsFromZeros(Kd,z1,z2):
@@ -152,26 +152,34 @@ def compute_time(d,start_time):
 
 class controller:
     def __init__(self,d):
-
+        eid = 'controller: init:'
         try:
             self.name = d['Name']
             if d['Ctype'] not in ['PID','LLC', 'Kct']:
-                error('controller: Illegal controller type code: '+str(ctype))
+                error(eid+' Illegal controller type code: '+str(ctype))
             self.ctype = d['Ctype']
             if len(d['Params']) not in [1,2,3]:
-                error('controller: Illegal gain vector:'+str(gains))
+                error(eid+' Illegal gain vector:'+str(gains))
         except:
-            error('controller: missing terms in setup dict.')
+            error(eid+' missing terms in setup dict.')
 
         if d['Ctype'] == 'PID': # PID specific info
+            self.pnames = ['Kp','Ki','Kd']
             try:
-                self.zeros = d['zeros']
+                self.zeros = d['Zeros']
                 self.regSep = d['RegSep']  # separation of regularization pole (if needed e.g. PID)
             except:
-                error('controller: Missing information for PID controller: Zeros and RegSep')
+                error(eid+' Missing information for PID controller: Zeros and RegSep')
+        if d['Ctype'] == 'LLC': # LLC specific info
+            self.pnames = ['K', 'pole', 'zero']
+            if len(d['Params']) != 3:
+                error(eid+" Length of [params] for LLC must be 3.")
+
+        if d['Ctype'] == 'Kct':
+            self.pnames = [ 'K' ]
+            pass  # add info checks for Constant gain controller
 
         self.params = d['Params']
-        self.pnames = d['Pnames']
 
     #
     #  Generate a transfer function for this controller
@@ -219,22 +227,26 @@ class controller:
             return self.ConstCtl([K])
 
     def updateK(self, K):  #update from a new Kd value
-        z1 = self.zeros[0]
-        z2 = self.zeros[1]
-        newGains = PIDKsFromZeros(K, z1, z2)
         if self.ctype == 'PID':
+            z1 = self.zeros[0]
+            z2 = self.zeros[1]
+            newGains = PIDKsFromZeros(K, z1, z2)
             self.updateParams(newGains)
-            # print(self.name, ' New PID params: ', self.params)
-        else:
-            self.params[0] = K  # the other controller types
-        return
+                # print(self.name, ' New PID params: ', self.params)
+            return
+
+        if self.ctype == 'LLC':
+            self.params[0] = K
+
+        if self.ctype == 'Kct':
+            self.updateParams([K])
 
     def updateParams(self, pvect):
         eid = 'Controller.updateParams: '
         if type(pvect) != type([1,2,3]):
-            error(eid+' new paramters must be a list')
+            error(eid + ' new paramters must be a list')
         if len(pvect) != len(self.pnames):
-            error(eid = 'wrong number of params given. Should be '+str(len(self.pnames)))
+            error(eid + 'wrong number of params given. Should be '+str(len(self.pnames)))
         self.params = pvect
 
     def PID(self, K, gains=None, zeros=None):
@@ -280,6 +292,7 @@ class controller:
         # print('regpole = ',regpole)
         # print('features(cont1): ', get_features(cont1))
         self.name = 'PID'
+
         return Cont
 
 
@@ -292,24 +305,25 @@ class controller:
         #  p[1] = pole (negative real)
         #  p[2] = zero (negative real)
         #
+        eid = 'controller: LeadLag (LLC):'
         s = control.TransferFunction.s
         if len(p) != 3:
-            error('controller.LeadLag: wrong number of control parameters: '+str(p))
-        K = p[0]
+            error(eid + 'wrong number of control parameters: '+str(p))
+        K    = p[0]
         pole = p[1]
         zero = p[2]
         if np.real(pole) != pole:
-            error('controller.LeadLag: pole must be real: '+str(pole))
+            error(eid + 'pole must be real: '+str(pole))
         if pole > 0:
-            error('controller.LeadLag: pole must be negative: '+str(pole))
+            error(eid + 'pole must be negative: '+str(pole))
         if np.real(zero) != zero:
-            error('controller.LeadLag: zero must be real: '+str(zero))
+            error(eid + 'zero must be real: '+str(zero))
         if zero > 0:
-            error('controller.LeadLag: zero must be negative: '+str(zero))
+            error(eid + 'zero must be negative: '+str(zero))
 
         self.params = p      # what to optimize
         norm = np.abs(pole/zero)
-        Cont = K * norm * ((s-zero)/(s-pole))  # now K is magnitude @ s=0
+        Cont = K * norm * ((s-zero)/(s-pole))
         self.name = 'LeadLag'
         return Cont
 
@@ -322,6 +336,7 @@ class controller:
             error(eid+' Constant gain must be real and positive')
         self.params = p
         self.name = 'ConstantGain'
+
         return control.TransferFunction(p[0],[1])  #
 
 
@@ -613,7 +628,8 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
     optResults['WSNames'] = WSNames  # names of different weight schemes
     optResults['Tmax'] = tmax
     optResults['Dt'] = dt
-    optResults['Pp'] = CtlObj.regSep
+    if CtlObj.ctype == 'PID':
+        optResults['Pp'] = CtlObj.regSep
 
     d = {}
     wst = {}

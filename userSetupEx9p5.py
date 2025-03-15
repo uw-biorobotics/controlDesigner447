@@ -31,7 +31,6 @@ if task not in allowedTasks:
 #    Plant Setup
 #
 
-
 Plant = (s+8)/((s+3)*(s+6)*(s+10))   # Example 9.5 Nise Book
 
 
@@ -46,25 +45,24 @@ controllerD['Name'] = 'Nise Example 9.5 Controller'
 
 # Constant single gain controller
 # controllerD['Ctype']  = 'Kct'  # a single gain controller
-# controllerD['Params'] = [ 21]  # example K=4
-# controllerD['Pnames'] = [ 'K' ]
+# controllerD['Params'] = [ 1000 ]  # example K=4
 
 # Lead-Lag Compensator
 # controllerD['Ctype'] = 'LLC'  # lead/lag compensator controller
-# controllerD['Params'] = [60,  -1, -4]  # example [ K, pole, zero]
-# controllerD['Pnames'] = ['K', 'pole', 'zero']
+# pole = -2
+# zero = -3
+# controllerD['Params'] = [60,   pole, zero]  # example [ K, pole, zero]
 
 # PID Controller
 controllerD['Ctype'] = 'PID'
 z1 = -56
 z2 =  -6
-controllerD['zeros'] = [-56, -.5]
+controllerD['Zeros'] = [-56, -.5]
 controllerD['Params']= cd447.PIDKsFromZeros(1.0, -56, -.5)  # Nise initial design
 controllerD['RegSep'] = 20  # how far to separate regularization pole
 
 print('Initializing PID with: ', controllerD['Params'])
 #  A good optimum: 48.5, .577, .752
-controllerD['Pnames'] = ['Kp','Ki','Kd']
 
 contObj = cd447.controller(controllerD) # instantiate the controller as above
 
@@ -88,8 +86,8 @@ SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  50 # Search range multiplier
-SPd['nvals']       =  20   # Number of points per parameter
+SPd['scale_range'] =  3   # Search range multiplier
+SPd['nvals']       =  40   # Number of points per parameter
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
