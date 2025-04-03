@@ -11,19 +11,16 @@ import time
 # Control Design problem definition file template
 #
 
+
+#  Process this command line
 s = control.TransferFunction.s
 allowedTasks = ['Rlocus', 'Optimize', 'StepResponse']
-
 args = sys.argv
 if len(args)<2:
     cd447.error('Please use a command line argument to select a task '+str(allowedTasks))
-
 task = args[1]
 if task not in allowedTasks:
     cd447.error(task + ' is not a recognized task '+str(allowedTasks))
-
-
-
 
 
 ###############################################
@@ -93,7 +90,7 @@ SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
 
 #
-# Sanity check SpD
+# Sanity check SPd
 #
 if task=='Optimize':
     delta = 100*SPd['scale_range']**(1.0/SPd['nvals'])-100  # %age change per step
