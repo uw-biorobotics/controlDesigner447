@@ -855,6 +855,8 @@ def StepResponseWrapper(searchD,controllerD):
     ax[0].set_title('Step Response')
     ax[0].set_xlim([0,tmax])
     # ax[0].set_ylim([0,2.0])
+    # ax[0].set_ylim([0, 0.045])
+
     ax[0].grid()
 
     # Horizontal window for Ts
@@ -874,12 +876,12 @@ def StepResponseWrapper(searchD,controllerD):
     #
     #  there seems to be a glitch with control effort
     #   for FIRST simulation sample
-    t = t[1:]   # skip first sample
-    y2 = y2[1:]
+    # t = t[1:]   # skip first sample
+    # y2 = y2[1:]
     ax[1].plot(t,y2)
     ax[1].set_title('Control Effort')
     # ax[1].set_xlim([0,tmax])
-    # ax[1].set_ylim([-45, 45])
+    # ax[1].set_ylim([0, 0.045])
     ax[1].grid()
 
 
