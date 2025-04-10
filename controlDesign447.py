@@ -285,7 +285,7 @@ class controller:
 
         Kp, Ki, Kd = self.params
         cont1 = Kd*s + Kp + Ki/s
-        regpole = regularization_separation * np.min(get_features(cont1))  # 20 is "big" and arbitrary
+        regpole = regularization_separation * np.min(get_features(cont1))  # "features" are real part of poles&zeros.
         regsys = np.abs(regpole) / (s-regpole)
 
         Cont = regsys * Kd*(s*s + (Kp/Kd)*s + Ki/Kd)/s
@@ -336,8 +336,9 @@ class controller:
             error(eid+' Constant gain must be real and positive')
         self.params = p
         self.name = 'ConstantGain'
-
-        return control.TransferFunction(p[0],[1])  #
+        num = p[0]
+        den = [1]
+        return control.TransferFunction(num, den)  #
 
 
 #
@@ -381,7 +382,7 @@ def cost_eval(Plant_TF, CtlObj, t):
         # Check stability using poles
         poles = control.poles(sys)
         if np.any(np.real(poles) > 0):
-            print('positive poles!', poles)
+            # print('positive poles!', poles)
             # return bad values so not saved as opt for any reason
             return 999, 999, 999, 9.999e7, gm_db, t
 
@@ -659,18 +660,20 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
     # Go through the found params:
     nparams = len(optResults['OptParams'][reportScheme])
 
-    print(f'Diagnostic: {reportScheme}  {parNames} npars: {nparams}')
+    # print(f'Diagnostic: {reportScheme}  {parNames} npars: {nparams}')
     for pn in range(nparams):
         P_opt = optResults['OptParams'][reportScheme][pn]
         P_minval = srch_vals[pn][0]
         P_maxval = srch_vals[pn][1]
         if P_opt in [P_maxval, P_minval]:
+            if NoBoundaries:
+                print('\n') # highlight boundry notices
             name = CtlObj.pnames[pn]
-            print(f"   Search boundary reached: {name:6} {'min' if P_opt == P_minval else 'max'}")
+            print(f"   Search boundary reached: {name:6} {'min' if P_opt == P_minval else 'max'}={P_opt:8f}  (using {reportScheme})")
             NoBoundaries = False
 
     if NoBoundaries:
-        print('\n                   All Results INSIDE Boundaries\n')
+        print('\n                   All params are INSIDE boundaries\n')
 
     return optResults
 
@@ -818,7 +821,7 @@ def RlocusWrapper(controllerD,Plant_TF):
         print(f'     {n:10}',end='')
     print('')
     for p in contObj.params:
-        print(f' {p:10.2f}',end='')
+        print(f' {p:10f}',end='')
     print('')
 
     # new controller TF with the clicked gain and with regularization
@@ -855,8 +858,6 @@ def StepResponseWrapper(searchD,controllerD):
     ax[0].set_title('Step Response')
     ax[0].set_xlim([0,tmax])
     # ax[0].set_ylim([0,2.0])
-    # ax[0].set_ylim([0, 0.045])
-
     ax[0].grid()
 
     # Horizontal window for Ts
