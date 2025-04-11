@@ -7,9 +7,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
+
+def cc(x):  # keeps code easier to read
+    return np.conj(x)
 #
 # Control Design problem definition file template
 #
+# flags
+PIDgains = False
+PIDZeros = False
 
 
 #  Process this command line
@@ -28,7 +34,7 @@ if task not in allowedTasks:
 #    Plant Setup
 #
 
-Plant = (s+8)/((s+3)*(s+6)*(s+10))   # Example 9.5 Nise Book
+Plant = (s+2)/((s+.6)*(s+4))   # a 2nd order plant
 
 
 ###############################################
@@ -37,8 +43,11 @@ Plant = (s+8)/((s+3)*(s+6)*(s+10))   # Example 9.5 Nise Book
 #
 #   controller info goes in a dictionary:
 #
+
 controllerD = {}
-controllerD['Name'] = 'Nise Example 9.5 Controller'
+#  compare with dashed line in V04
+controllerD['Name'] = 'Template File for Setup Demo'
+
 
 # Constant single gain controller
 # controllerD['Ctype']  = 'Kct'  # a single gain controller
@@ -50,17 +59,66 @@ controllerD['Name'] = 'Nise Example 9.5 Controller'
 # zero = -3
 # controllerD['Params'] = [60,   pole, zero]  # example [ K, pole, zero]
 
-# PID Controller
+
 controllerD['Ctype'] = 'PID'
-z1 = -56
-z2 =  -6
-controllerD['Zeros'] = [-56, -.5]
-controllerD['Params']= cd447.PIDKsFromZeros(1.0, -56, -.5)  # Nise initial design
-controllerD['RegSep'] = 20  # how far to separate regularization pole
+#
+#   PID Controller: Set up with gain vector
+#
+# PIDgains = True   # this tells system we start with gains Kp,Ki,Kd
+#
+# Kp = 40
+# Ki = 2
+# Kd = 0.8
+# controllerD['Parameters'] = [Kp,Ki,Kd]
+
+#
+#   PID Controller: Set up with Kd and two zeros
+# #
+#
+# PIDZeros = True   # this tells system we start with gains Kd, z1, z2
+# controllerD['Ctype'] = 'PID'
+# # Some initial values
+# Kd = 1.0
+# z1 = -5
+# z2 = -12
+
+#
+#   Try 2 (bal)
+PIDgains = True
+Kp=1.7
+Ki=6.0
+Kd=.577
+
+#
+# set up regularization pole (make C(s) proper)
+#
+controllerD['RegSep'] = 500  # how far to separate regularization pole from most negative real part
+
+
+###########################################3
+#
+#  End of controller Setup
+#
+
+# flag chooses between how we initialize PID controller:
+if PIDgains and PIDZeros:
+    cd447.error('Please set only one of [PIDgains, PIDzeros]')
+if not(PIDgains or PIDZeros):
+    cd447.error('You must set one fo the flags:  [PIDgains, PIDzeros] ')
+
+if PIDgains:
+    #  Set controller based on Kp,Ki,Kd
+    controllerD['Zeros'] = cd447.PIDZerosFromKs(Kp,Ki,Kd)
+    controllerD['Params']= [Kp,Ki,Kd]
+    #
+elif PIDZeros:
+    #  Set controller based on Kd, z1, z2
+    controllerD['Zeros'] = [z1,z2]
+    controllerD['Params']= cd447.PIDKsFromZeros(Kd,z1,z2)
 
 print('Initializing PID with: ', controllerD['Params'])
-#  A good optimum: 48.5, .577, .752
 
+# instantiate the controller based on parameter dictionary
 contObj = cd447.controller(controllerD) # instantiate the controller as above
 
 
@@ -71,9 +129,7 @@ contObj = cd447.controller(controllerD) # instantiate the controller as above
 #
 # Search Parameter Dictionary
 SPd = {}
-SPd['Name'] = controllerD['Name']
-SPd['Plant_TF'] = Plant
-SPd['controller'] = contObj
+SPd['Name'] = 'SearchSetup: ' + controllerD['Name']
 
 # Desired Performance target
 SPd['tsd']         =   0.6  # Desired settling time (sec)
@@ -84,11 +140,15 @@ SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
 SPd['scale_range'] =  3   # Search range multiplier
-SPd['nvals']       =  40   # Number of points per parameter
+SPd['nvals']       =  15   # Number of points per parameter
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
 
+# do not change these:
+SPd['Name'] = controllerD['Name']
+SPd['Plant_TF'] = Plant
+SPd['controller'] = contObj
 #
 # Sanity check SPd
 #
@@ -140,11 +200,11 @@ if task == 'Rlocus':
     controllerD_SR2 = controllerD
     controllerD_SR2['Params'] = contObjRev.params  # revised gains from clicked point
 
-    task = 'StepResponse'  # plot it!
+    cd447.StepResponseWrapper(SPd, controllerD_SR2 )
 
 if task == 'StepResponse':
 
-    cd447.StepResponseWrapper(SPd, controllerD_SR2)
+    cd447.StepResponseWrapper(SPd, controllerD )
 
 
 

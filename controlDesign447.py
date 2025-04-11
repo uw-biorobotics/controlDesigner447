@@ -117,9 +117,15 @@ def checkPZType(K):
 #
 #  Search time estimation
 #
-def estimate_time(d):
+def estimate_time(searchD):
+    eid = 'estimate_time(searchDict)'
     # 196770  # simulation ticks per minute on this computer
-
+    if 'SearchSetup' not in searchD['Name']:
+        error(eid+': This function requires a Search Setup Dictionary.')
+    try:
+        xst = searchD['Controller']
+    except:
+        error(eid+': search setup must have a defined controller object.')
     # For rate predictions
     try:
         with open('simrate_optigain.txt', 'r') as file:
@@ -129,17 +135,21 @@ def estimate_time(d):
     except FileNotFoundError:
         TicksPermin = 3500000   # works for BH!
 
-    exponent = len(d['controller'].params)
-    estimated_time = ( (d['nvals']+1)**exponent * d['tmax']/d['dt']  )/  TicksPermin
+    exponent = len(searchD['Controller'].params)
+    estimated_time = ( (searchD['nvals']+1)**exponent * searchD['tmax']/searchD['dt']  )/  TicksPermin
     return estimated_time
 
 #
 #  Search Time: actual computation of
 #
 def compute_time(d,start_time):
+    eid = 'compute_time(searchDict)'
+    # 196770  # simulation ticks per minute on this computer
+    if 'SearchSetup' not in d['Name']:
+        error(eid+': This function requires a Search Setup Dictionary.')
     end_time = time.time()
     duration = (end_time - start_time) / 60 # min
-    exponent = len(d['controller'].params)
+    exponent = len(d['Controller'].params)
     totalTicks = d['tmax']* (d['nvals'] + 1)**exponent / d['dt']  # total integration ticks
     rate = totalTicks / duration
     with open('simrate_optigain.txt', 'w') as file:  # save the simulation rate
@@ -161,7 +171,7 @@ class controller:
             if len(d['Params']) not in [1,2,3]:
                 error(eid+' Illegal gain vector:'+str(gains))
         except:
-            error(eid+' missing terms in setup dict.')
+            error(eid+' missing keys in setup dictionary.')
 
         if d['Ctype'] == 'PID': # PID specific info
             self.pnames = ['Kp','Ki','Kd']
@@ -770,8 +780,6 @@ def RlocusWrapper(controllerD,Plant_TF):
     tsd = 0.4
     tmax = 4.0 * tsd
     plotHeight = 1.5 # step plus overshoot
-
-    contObj.regSep = 10   # How far away is your reg pole?
 
     # make the controller TF
     C_TF = contObj.generate()
