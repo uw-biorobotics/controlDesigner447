@@ -478,7 +478,8 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
         emin[scheme] = 99999.99
 
     # Setup search ranges
-    scalef = np.sqrt(scale_range)
+    # scalef = np.sqrt(scale_range)
+    scalef = scale_range
     ranges = []
     for p in CtlObj.params:  # only the needed params
         ranges.append((p/scalef, p*scalef))
@@ -486,7 +487,7 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
     # Calculate (geometric) step sizes
     gdk=[] # geometric delt K
     for i,p in enumerate(CtlObj.params):
-        gdk.append(scalef**(1.0/nvals))
+        gdk.append(scalef**(2.0/nvals))
     # for gn in ['Kp','Ki','Kd']:
     #     gdk[gn] = (k_ranges[gn][1] / k_ranges[gn][0])**(1.0/nvals)
 
@@ -498,6 +499,9 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
         srch_vals[i] = []
         for k in range(nvals+1):  # +1 covers top of range
             srch_vals[i].append(ranges[i][0] * gdk[i]**k)
+
+# diagnostic
+        print(f'Range ({CtlObj.pnames[i]}) {srch_vals[i][0]:10f} <---> {srch_vals[i][-1]:10f}')
 
 #     |----------------------------|
     print("|" + "-"*nvals + "|")  # "bar graph header"
