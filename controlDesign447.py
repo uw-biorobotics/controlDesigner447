@@ -120,6 +120,7 @@ def checkPZType(K):
 def estimate_time(searchD):
     eid = 'estimate_time(searchDict)'
     # 196770  # simulation ticks per minute on this computer
+    print(searchD['Name'])
     if 'SearchSetup' not in searchD['Name']:
         error(eid+': This function requires a Search Setup Dictionary.')
     try:
@@ -778,51 +779,71 @@ def RlocusWrapper(controllerD,Plant_TF):
 
     contObj = controller(controllerD)   # instantiate the controller object
 
-    #########################################################################
-    # customize plot output for your specs
-    #
-    tsd = 0.4
-    tmax = 4.0 * tsd
-    plotHeight = 1.5 # step plus overshoot
-
     # make the controller TF
     C_TF = contObj.generate()
 
-    INTERACTIVE = True
+    #
+    #    Start the RL with custom grid labels for overshoot
+    #
+    fig, ax = plt.subplots(figsize=(10, 8))
 
-    if INTERACTIVE:
+    ax.set_aspect('equal')
 
-        plt.figure(figsize=(12,12))
-
-        # gainrange = np.arange(0.0, 100, 0.01)
-        # Root Locus argument is loop gain, CPH(s)
-        control.root_locus_plot(C_TF*Plant_TF) #, gains=gainrange)
-
-        plt.show()
+    # gainrange = np.arange(0.0, 100, 0.01)
+    # Root Locus argument is loop gain, CPH(s)
+    ctlPltRL = control.root_locus(C_TF*Plant_TF,grid=True,ax=ax) #, gains=gainrange)
 
 
-        #
-        ##     Get gain(s) from RL click point
-        #
+    #
+    #  angle labels
+    # pmm = 4
+    # print(p_array)
+    # quit()
+    # for p in p_array:
+    #     if np.abs(p)> pmm:
+    #         pmm = np.abs(p)
+    # max_radius = pmm
+    max_radius = 15
+    plim = max_radius * 1.75
+    angles = [10,20,30,40,50,60,70,80,90]
+    for a in angles:
+        arad = (180-a)*2*np.pi/360.0
+        #label positions
+        label_r = plim
+        label_x = label_r*np.cos(arad)
+        label_y = label_r*np.sin(arad)
+        ax.text(label_x, label_y, f'{a}', color='blue', ha='center',
+                va='center', fontsize=9)
+        # radial lines
+        plt.plot([0,label_x],[0,label_y], color='gray',linestyle=':')
 
-        # ask user for click info from RL
-        K = input('\n\n          What gain did you click? (x to quit) ')
+        label_y = -1*label_y
+        ax.text(label_x, label_y, f'{a}', color='blue', ha='center',
+                va='center', fontsize=9)
+        # radial lines
+        plt.plot([0,label_x],[0,label_y], color='gray',linestyle=':')
+        # ,
+                # bbox=dict(facecolor='white', alpha=0.7, edgecolor='none'))
+    # circles
+    for r in np.linspace(0, plim, 6):
+        circle = plt.Circle((0, 0), r, fill=False, linestyle=':', color='gray', alpha=0.5)
+        ax.add_artist(circle)
+    plt.title('Root Locus')
+    ax.set_xlim([-2*plim-1,  1])
+    ax.set_ylim([-plim, plim])
+    # plt.tight_layout()
+    plt.grid()
+    plt.show()
+    #
+    ##     Get gain(s) from RL click point
+    #
 
-        try:
-            Kcl = float(K)  # closed loop gain constant
-        except:
-            quit() # e.g. enter 'x' to quit
-
-        #
-        # plR = float(input('Real part of pole? '))
-        # plI = float(input('Imag part of pole? '))
-        # J = 0+1j
-        # poleloc = plR + J*plI
-
-    else:  # if you're debugging and dont want to input same point over and over
-        # use this:
-        Kcl = xxx
-
+    # ask user for click info from RL
+    K = input('\n\n          What gain did you click? (x to quit) ')
+    try:
+        Kcl = float(K)  # closed loop gain constant
+    except:
+        quit() # e.g. enter 'x' to quit
 
 
     contObj.updateK(Kcl) # update controller scalar gain
@@ -884,10 +905,13 @@ def StepResponseWrapper(searchD,controllerD):
     H=1
     CE = control.feedback(CstepPlot, Plant_TF*H)
 
-    _,y2 = control.step_response(CE,t)  # compute control effort
+    _,y2 = control.step_response(CE,t)
 
     #
-    #
+    #  there seems to be a glitch with control effort
+    #   for FIRST simulation sample
+    # t = t[1:]   # skip first sample
+    # y2 = y2[1:]
     ax[1].plot(t,y2)
     ax[1].set_title('Control Effort')
     # ax[1].set_xlim([0,tmax])
@@ -902,9 +926,9 @@ def StepResponseWrapper(searchD,controllerD):
     sse = steady_state_error(t,y1)
 
     print('Performance Report:')
-    print(f'Peak Control effort:     {max(y2):10.3f}')  #  include the transienttransient
-    print(f'RMS Control effort:      {rms447(y2):10.3f}')  # average the transient
-    # print(f'Control Effort Signal: {y2[0:20]}')
+    print(f'Peak Control effort:     {max(y2[3:]):10.3f}')  # skip transient
+    print(f'RMS Control effort:      {rms447(y2[3:]):10.3f}')
+
     print(f'Ts:      {ts:10.3f}')
     print(f'%os:     {pctOS:10.3f}')
     print(f'SSE:     {sse:10.3f}')
