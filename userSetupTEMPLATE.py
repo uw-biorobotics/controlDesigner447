@@ -35,7 +35,7 @@ if task not in allowedTasks:
 #    Plant Setup
 #
 
-Plant = 2.4/((s+2)*(s+4))   # a 2nd order plant
+Plant = 2.4/((s+2)*(s+4))   # just an example system
 
 
 ###############################################
@@ -46,8 +46,15 @@ Plant = 2.4/((s+2)*(s+4))   # a 2nd order plant
 #
 
 controllerD = {}
-#  compare with dashed line in V04
-controllerD['Name'] = 'Template File for Setup Demo'
+controllerD['Name'] = 'Template File for Control Design Setup'
+
+
+##############################################################  controller setup section
+#
+#    Start here for controller configuration
+#
+
+# two simple controller options:
 
 # Constant single gain controller
 #          The simplest possible controller but limited power
@@ -62,15 +69,15 @@ controllerD['Name'] = 'Template File for Setup Demo'
 # controllerD['Params'] = [60,   pole, zero]  # example [ K, pole, zero]
 
 
-
-
+#############################
+#
 # PID Controller
 #        As used by 99% of industrial controllers
 controllerD['Ctype'] = 'PID'
 # flags (do not change these)
 PIDgains = False
 PIDZeros = False
-##########################################################
+##############################
 #         Examples:   Two ways to initialize the PID controller
 #
 
@@ -89,17 +96,24 @@ PIDZeros = False
 # Kd = 1.0
 # z1 = -5
 # z2 = -12
-###############################################################
-
+#############################
 
 #
-#   Example Problem solving sequence for the plant above
+##############################################################  End of controller setup section
+
+
+
+
+
+##############################################################################
+##############################################################################
+#   Demo problem using PID controller:
+#
+#   Example Problem solving sequence for a PID controller with the plant above
 #
 
 # 1)  Our first controller guess is based on a "manual" design:
 # PIDZeros = True   # this tells system we start with gains Kd, z1, z2
-# # controllerD['Ctype'] = 'PID'
-# # # Some initial values
 # Kd = 1.0
 # z1 = -6 + 6j
 # z2 = cc(z1)
@@ -115,18 +129,20 @@ Kd=0.06
 # 3)  Pretty close step response is achieved with the "balanced" result:
 #              Kp:   36.000 Ki:  128.211 Kd:    3.000
 #
-#        End of example.   (would do a couple more optimization rounds for real problem)
+#        End of example.   (would do a couple more optimization rounds
+#                           a for real problem)
+##############################################################################
+##############################################################################
+
+
+
+
 
 #
 # set up regularization pole (make C(s) proper)
 #
 controllerD['RegSep'] = 25  # how far to separate regularization pole from most negative real part
 
-
-###########################################3
-#
-#  End of controller Setup
-#
 
 # flag chooses between how we initialize PID controller:
 if PIDgains and PIDZeros:
