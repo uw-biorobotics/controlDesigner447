@@ -18,11 +18,12 @@ def cc(x):  # keeps code easier to read
     return np.conj(x)  # get the complex conjugate
 #
 
-
 #  Process this command line
 s = control.TransferFunction.s
 allowedTasks = ['Rlocus', 'Optimize', 'StepResponse']
 task = cd447.process_cmd_line(sys.argv,allowedTasks)
+
+
 
 ###############################################
 # #
@@ -32,7 +33,7 @@ task = cd447.process_cmd_line(sys.argv,allowedTasks)
 Plant = 2.4/((s+2)*(s+4))   # just an example system
 
 
-###############################################
+############################################### controller setup section
 #
 #    Controller Setup
 #
@@ -43,7 +44,7 @@ controllerD = {}
 controllerD['Name'] = 'Template File for Control Design Setup'
 
 
-##############################################################  controller setup section
+############################################
 #
 #    Start here for controller configuration
 #
