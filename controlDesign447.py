@@ -11,7 +11,24 @@ import time
 #       * lead-lag controllers
 #       * PID controllers
 
+def error(msg):
+    print('\n\nError: ', msg,'\n\n')
+    quit()
 
+def process_cmd_line(args,allowedTasks):
+    eid = 'process_command_line(): '
+    if len(args)<2:
+        error(eid + 'Please use a command line argument to select a task '+str(allowedTasks))
+    cl_arg = args[1]
+    for at in allowedTasks:
+        lct = cl_arg.lower()
+        lat = at.lower()
+        if lat.startswith(lct):   # you can use "Opti" for example
+            task = at
+            break
+    if task not in allowedTasks:
+        error(eid + task + ' is not a recognized task '+str(allowedTasks))
+    return task
 
 #
 #   Performance Evaluator Functions
@@ -51,10 +68,6 @@ def get_control_effort(ctlTF, Plant_TF, H, t):
 def rms447(x):
     x = np.array(x) # if its a list e.g.
     return np.sqrt(np.mean(x**2))
-
-def error(msg):
-    print('\n\nError: ', msg,'\n\n')
-    quit()
 
 def PIDKsFromZeros(Kd,z1,z2):
     Kp= -1 * np.real(z1+z2)*Kd
@@ -679,7 +692,7 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
     for pn in range(nparams):
         P_opt = optResults['OptParams'][reportScheme][pn]
         P_minval = srch_vals[pn][0]
-        P_maxval = srch_vals[pn][1]
+        P_maxval = srch_vals[pn][-1]
         if P_opt in [P_maxval, P_minval]:
             if NoBoundaries:
                 print('\n') # highlight boundry notices

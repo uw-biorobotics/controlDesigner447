@@ -15,20 +15,14 @@ import time
 
 
 def cc(x):  # keeps code easier to read
-    return np.conj(x)
+    return np.conj(x)  # get the complex conjugate
 #
 
 
 #  Process this command line
 s = control.TransferFunction.s
 allowedTasks = ['Rlocus', 'Optimize', 'StepResponse']
-args = sys.argv
-if len(args)<2:
-    cd447.error('Please use a command line argument to select a task '+str(allowedTasks))
-task = args[1]
-if task not in allowedTasks:
-    cd447.error(task + ' is not a recognized task '+str(allowedTasks))
-
+task = cd447.process_cmd_line(sys.argv,allowedTasks)
 
 ###############################################
 # #
@@ -126,11 +120,16 @@ Kp=0.72
 Ki=4.32
 Kd=0.06
 
-# 3)  Pretty close step response is achieved with the "balanced" result:
-#              Kp:   36.000 Ki:  128.211 Kd:    3.000
+# 3)  Pretty close step response is achieved with the "WSO" result:
+#              Kp:   36.000 Ki: 76.1 Kd:    3.000
+#
+
 #
 #        End of example.   (would do a couple more optimization rounds
 #                           a for real problem)
+#   a very nice result was achieved at  Kp: 72.000 Ki:  101.594 Kd:    3.780
+#
+
 ##############################################################################
 ##############################################################################
 
@@ -183,7 +182,7 @@ SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  50   # Search range multiplier
+SPd['scale_range'] =  2   # Search range multiplier
 SPd['nvals']       =  15   # Number of points per parameter
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
