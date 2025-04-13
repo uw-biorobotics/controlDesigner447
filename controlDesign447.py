@@ -791,19 +791,27 @@ def RlocusWrapper(controllerD,Plant_TF):
 
     # gainrange = np.arange(0.0, 100, 0.01)
     # Root Locus argument is loop gain, CPH(s)
-    ctlPltRL = control.root_locus(C_TF*Plant_TF,grid=True,ax=ax) #, gains=gainrange)
+    CPH = C_TF*Plant_TF
+    ctlPltRL = control.root_locus(CPH,ax=ax) #, gains=gainrange)
 
 
     #
     #  angle labels
-    # pmm = 4
-    # print(p_array)
-    # quit()
-    # for p in p_array:
-    #     if np.abs(p)> pmm:
-    #         pmm = np.abs(p)
-    # max_radius = pmm
-    max_radius = 15
+    #
+    f_array = list(CPH.poles()) + list(CPH.zeros())
+    for i,f in enumerate(f_array):  # get a list of mags of poles and zeros
+        f_array[i] = np.abs(f)
+    # delete the regularization pole feature however
+    f_array.remove(np.max(f_array))
+    print(f_array)
+    pmm = 0
+    for p in f_array:
+        if np.abs(p)> pmm:
+            pmm = np.abs(p)
+    max_radius = pmm
+    print('Max Radius: ', pmm)
+
+    # max_radius = 15
     plim = max_radius * 1.75
     angles = [10,20,30,40,50,60,70,80,90]
     for a in angles:

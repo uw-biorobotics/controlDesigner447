@@ -7,15 +7,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
+#
+# Control Design problem definition file template
+#
+#    Modify this file below to set up your control design problem
+#
+
 
 def cc(x):  # keeps code easier to read
     return np.conj(x)
 #
-# Control Design problem definition file template
-#
-# flags
-PIDgains = False
-PIDZeros = False
 
 
 #  Process this command line
@@ -34,7 +35,7 @@ if task not in allowedTasks:
 #    Plant Setup
 #
 
-Plant = (s+2)/((s+.6)*(s+4))   # a 2nd order plant
+Plant = 2.4/((s+2)*(s+4))   # a 2nd order plant
 
 
 ###############################################
@@ -48,51 +49,78 @@ controllerD = {}
 #  compare with dashed line in V04
 controllerD['Name'] = 'Template File for Setup Demo'
 
-
 # Constant single gain controller
+#          The simplest possible controller but limited power
 # controllerD['Ctype']  = 'Kct'  # a single gain controller
 # controllerD['Params'] = [ 1000 ]  # example K=4
 
 # Lead-Lag Compensator
+#          A widely used basic controller
 # controllerD['Ctype'] = 'LLC'  # lead/lag compensator controller
 # pole = -2
 # zero = -3
 # controllerD['Params'] = [60,   pole, zero]  # example [ K, pole, zero]
 
 
+
+
+# PID Controller
+#        As used by 99% of industrial controllers
 controllerD['Ctype'] = 'PID'
+# flags (do not change these)
+PIDgains = False
+PIDZeros = False
+##########################################################
+#         Examples:   Two ways to initialize the PID controller
+#
+
 #
 #   PID Controller: Set up with gain vector
 #
 # PIDgains = True   # this tells system we start with gains Kp,Ki,Kd
-#
 # Kp = 40
 # Ki = 2
 # Kd = 0.8
-# controllerD['Parameters'] = [Kp,Ki,Kd]
 
 #
 #   PID Controller: Set up with Kd and two zeros
-# #
 #
 # PIDZeros = True   # this tells system we start with gains Kd, z1, z2
-# controllerD['Ctype'] = 'PID'
-# # Some initial values
 # Kd = 1.0
 # z1 = -5
 # z2 = -12
+###############################################################
+
 
 #
-#   Try 2 (bal)
+#   Example Problem solving sequence for the plant above
+#
+
+# 1)  Our first controller guess is based on a "manual" design:
+# PIDZeros = True   # this tells system we start with gains Kd, z1, z2
+# # controllerD['Ctype'] = 'PID'
+# # # Some initial values
+# Kd = 1.0
+# z1 = -6 + 6j
+# z2 = cc(z1)
+
+# 2)  We got a reasonable (but slow) step response clicking at Kd=0.06.  Let's
+#     do a broad search around resulting gains: K_pid = [.72, 4.32, .06]
+#     using the "Optimize" verb with search range 50, and 15 values (est 0.76 min)
 PIDgains = True
-Kp=1.7
-Ki=6.0
-Kd=.577
+Kp=0.72
+Ki=4.32
+Kd=0.06
+
+# 3)  Pretty close step response is achieved with the "balanced" result:
+#              Kp:   36.000 Ki:  128.211 Kd:    3.000
+#
+#        End of example.   (would do a couple more optimization rounds for real problem)
 
 #
 # set up regularization pole (make C(s) proper)
 #
-controllerD['RegSep'] = 500  # how far to separate regularization pole from most negative real part
+controllerD['RegSep'] = 25  # how far to separate regularization pole from most negative real part
 
 
 ###########################################3
@@ -139,7 +167,7 @@ SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  3   # Search range multiplier
+SPd['scale_range'] =  50   # Search range multiplier
 SPd['nvals']       =  15   # Number of points per parameter
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
