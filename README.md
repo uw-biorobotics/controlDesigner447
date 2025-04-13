@@ -1,7 +1,8 @@
 # Introduction to ECE447 Control Design Search Tools   (11-Apr-2025)
 
 These tools support design of control systems for your plant. By using simulation and exhaustive
-search, performance can be computed without simplifying assumptions such as dominant pole pairs.
+search, performance can be computed and a good controller found
+without simplifying assumptions such as dominant pole pairs.
 
 There are two main files:  `userSetupTemplate.py` and `controlDesign447.py`.
 

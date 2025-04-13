@@ -146,9 +146,8 @@ SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
 
 # do not change these:
-SPd['Name'] = controllerD['Name']
 SPd['Plant_TF'] = Plant
-SPd['controller'] = contObj
+SPd['Controller'] = contObj
 #
 # Sanity check SPd
 #

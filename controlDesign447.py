@@ -884,13 +884,10 @@ def StepResponseWrapper(searchD,controllerD):
     H=1
     CE = control.feedback(CstepPlot, Plant_TF*H)
 
-    _,y2 = control.step_response(CE,t)
+    _,y2 = control.step_response(CE,t)  # compute control effort
 
     #
-    #  there seems to be a glitch with control effort
-    #   for FIRST simulation sample
-    # t = t[1:]   # skip first sample
-    # y2 = y2[1:]
+    #
     ax[1].plot(t,y2)
     ax[1].set_title('Control Effort')
     # ax[1].set_xlim([0,tmax])
@@ -905,9 +902,9 @@ def StepResponseWrapper(searchD,controllerD):
     sse = steady_state_error(t,y1)
 
     print('Performance Report:')
-    print(f'Peak Control effort:     {max(y2[3:]):10.3f}')  # skip transient
-    print(f'RMS Control effort:      {rms447(y2[3:]):10.3f}')
-
+    print(f'Peak Control effort:     {max(y2):10.3f}')  #  include the transienttransient
+    print(f'RMS Control effort:      {rms447(y2):10.3f}')  # average the transient
+    # print(f'Control Effort Signal: {y2[0:20]}')
     print(f'Ts:      {ts:10.3f}')
     print(f'%os:     {pctOS:10.3f}')
     print(f'SSE:     {sse:10.3f}')
