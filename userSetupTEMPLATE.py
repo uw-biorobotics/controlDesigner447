@@ -144,23 +144,24 @@ Kd=0.06
 controllerD['RegSep'] = 25  # how far to separate regularization pole from most negative real part
 
 
-# flag chooses between how we initialize PID controller:
-if PIDgains and PIDZeros:
-    cd447.error('Please set only one of [PIDgains, PIDzeros]')
-if not(PIDgains or PIDZeros):
-    cd447.error('You must set one fo the flags:  [PIDgains, PIDzeros] ')
+if controllerD['Ctype'] =='PID':
+    # flag chooses between how we initialize PID controller:
+    if PIDgains and PIDZeros:
+        cd447.error('Please set only one of [PIDgains, PIDzeros]')
+    if not(PIDgains or PIDZeros):
+        cd447.error('You must set one fo the flags:  [PIDgains, PIDzeros] ')
 
-if PIDgains:
-    #  Set controller based on Kp,Ki,Kd
-    controllerD['Zeros'] = cd447.PIDZerosFromKs(Kp,Ki,Kd)
-    controllerD['Params']= [Kp,Ki,Kd]
-    #
-elif PIDZeros:
-    #  Set controller based on Kd, z1, z2
-    controllerD['Zeros'] = [z1,z2]
-    controllerD['Params']= cd447.PIDKsFromZeros(Kd,z1,z2)
+    if PIDgains:
+        #  Set controller based on Kp,Ki,Kd
+        controllerD['Zeros'] = cd447.PIDZerosFromKs(Kp,Ki,Kd)
+        controllerD['Params']= [Kp,Ki,Kd]
+        #
+    elif PIDZeros:
+        #  Set controller based on Kd, z1, z2
+        controllerD['Zeros'] = [z1,z2]
+        controllerD['Params']= cd447.PIDKsFromZeros(Kd,z1,z2)
 
-print('Initializing PID with: ', controllerD['Params'])
+    print('Initializing PID with: ', controllerD['Params'])
 
 # instantiate the controller based on parameter dictionary
 contObj = cd447.controller(controllerD) # instantiate the controller as above

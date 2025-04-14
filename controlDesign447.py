@@ -149,6 +149,9 @@ def estimate_time(searchD):
     except FileNotFoundError:
         TicksPermin = 3500000   # works for BH!
 
+    if type(searchD['nvals']) != type(5):
+            error(eid+ f'Number of search values (nvals={searchD["nvals"]}) must be an integer!')
+
     exponent = len(searchD['Controller'].params)
     estimated_time = ( (searchD['nvals']+1)**exponent * searchD['tmax']/searchD['dt']  )/  TicksPermin
     return estimated_time
