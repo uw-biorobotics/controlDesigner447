@@ -40,23 +40,23 @@ Plant = 2.4/((s+2)*(s+4))   # just an example system
 #   controller info goes in a dictionary:
 #
 
-controllerD = {}
+controllerD = {}   # a dictionary to hold all control design parameters
 controllerD['Name'] = 'Template File for Control Design Setup'
 
 
 ############################################
 #
 #    Start here for controller configuration
-#
+#     (only uncomment ONE controller type)
 
 # two simple controller options:
 
-# Constant single gain controller
+# 1) Constant single gain controller
 #          The simplest possible controller but limited power
 # controllerD['Ctype']  = 'Kct'  # a single gain controller
 # controllerD['Params'] = [ 1000 ]  # example K=4
 
-# Lead-Lag Compensator
+# 2) Lead-Lag Compensator
 #          A widely used basic controller
 # controllerD['Ctype'] = 'LLC'  # lead/lag compensator controller
 # pole = -2
@@ -69,7 +69,7 @@ controllerD['Name'] = 'Template File for Control Design Setup'
 # PID Controller
 #        As used by 99% of industrial controllers
 controllerD['Ctype'] = 'PID'
-# flags (do not change these)
+# flags (do not change these here)
 PIDgains = False
 PIDZeros = False
 ##############################
@@ -135,9 +135,6 @@ Kd=0.06
 ##############################################################################
 
 
-
-
-
 #
 # set up regularization pole (make C(s) proper)
 #
@@ -178,14 +175,14 @@ SPd['Name'] = 'SearchSetup: ' + controllerD['Name']
 
 # Desired Performance target
 SPd['tsd']         =   0.6  # Desired settling time (sec)
-SPd['pod']         =    20  # Desired overshoot ratio (e.g. 10%)
+SPd['pod']         =  0.20  # # Desired overshoot ratio (e.g. 10%=0.10)
 SPd['ssed']        =  0.01  # Desired steady state error
 SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
 # Search Parameters
-SPd['scale_range'] =  2   # Search range multiplier
-SPd['nvals']       =  15   # Number of points per parameter
+SPd['scale_range'] =  2   # Search range multiplier ('width' of search)
+SPd['nvals']       =  15   # Number of points per parameter (# grid points)
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
 SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
@@ -211,7 +208,6 @@ print(f'Starting {task}')
 if task == 'Optimize':
 
     est_search_time = cd447.estimate_time(SPd)
-
     print(f'Estimated Search Time: {est_search_time:8.2f} min.')
     x = input('Do you want to continue? <CR>')
 

@@ -48,8 +48,8 @@ def settle_time(t: np.ndarray, y: np.ndarray, threshold = 0.02) -> float:
             return t[i]
     return t[0]
 
-def PCTovershoot(t, y, amp=1.0):
-    return 100*(max(y)-amp)/amp
+def PCTovershoot(t, y, amp=1.0):  # e.g. 10%OS = 0.10
+    return (max(y)-amp)/amp
 
 def steady_state_error(t: np.ndarray, y: np.ndarray, goal=1.0):
     """Calculate steady state error"""
@@ -379,7 +379,7 @@ def cost_eval(Plant_TF, CtlObj, t):
     Evaluate controller performance (of a Plant_TF(TF) and a Controller Object)
     Returns: ts, po, ss, cu, gm, y
     ts - settling time
-    po - overshoot ratio
+    po - overshoot ratio  (10% = 0.10)
     ss - steady state error
     cu - control effort
     gm - gain margin
@@ -450,7 +450,7 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
     tmax        = SPd['tmax']              # Maximum simulation time
     dt          = SPd['dt']                # Time step
     tsd         = SPd['tsd']               # Desired settling time
-    pod         = SPd['pod']               # Desired overshoot ratio
+    pod         = SPd['pod']               # Desired overshoot ratio  (e.g. 10%=0.10)
     ssed        = SPd['ssed']              # Desired steady state error
     cu_max      = SPd['cu_max']            # Maximum control effort
     gm_db       = SPd['gm_db']             # Desired gain margin in dB
@@ -673,7 +673,7 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
     optResults['OptParams'] = CurOptParms  # best parameters found (for all schemes)
     goals = {}
     goals['tsd'] = tsd        # desired settle time
-    goals['pod'] = pod        # desired percent overshoot (e.g. "5.0"%)
+    goals['pod'] = pod        # desired percent overshoot (e.g. 10% = 0.10)
     goals['ssed'] = ssed
     goals['cu_max'] = cu_max
     goals['gm_db'] = gm_db
@@ -746,7 +746,7 @@ def printResults(R):
         ## cost_eval
         ts, pctOS, ss, cu, gm_db , y = cost_eval(R['Plant_TF'], CtlObj , t)
 
-        print(f'Settling Time: {ts:6.3f}  Overshoot: {pctOS:6.3f} %   SSE: {ss:6.3f} Ctl Effort: {cu:6.3f}   Gain Marg: {gm_db:6.1f} dB  ]')
+        print(f'Settling Time: {ts:6.3f}  Overshoot: {100.0*pctOS:6.1f} %   SSE: {ss:6.3f} Ctl Effort: {cu:6.3f}   Gain Marg: {gm_db:6.1f} dB  ]')
 
 
 def graphResults(R,title='ECE447, Sp25', wsnames=None):
@@ -946,7 +946,7 @@ def StepResponseWrapper(searchD,controllerD):
     fig.suptitle(ProbName)
 
     ts = settle_time(t,y1)
-    pctOS = PCTovershoot(t,y1)
+    pctOS = PCTovershoot(t,y1)  # e.g. "10%" = 0.10
     sse = steady_state_error(t,y1)
 
     print('Performance Report:')
