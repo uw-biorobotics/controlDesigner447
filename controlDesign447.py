@@ -479,7 +479,7 @@ def optimize_ctl(Plant_TF, CtlObj, SPd):
     # Define weight schemes
     weight_schemes = {
     "WTS": [f"Ts = {tsd:.3f}",  [1.0, 0.0, 0.0, 0.0, 0.0,0.0]],
-    "WOS": [f"Overshoot = {pod:.2f}", [0.0, 1.0, 0.0, 0.0, 0.0]],
+    "WOS": [f"Overshoot = {100*pod:6.2f}%", [0.0, 1.0, 0.0, 0.0, 0.0]],
     "WSSE": [f"SSE = {ssed:.2f}",  [0.0, 0.0, 1.0, 0.0, 0.0]],
     "WU": [f"Control Effort Max = {cu_max:.2f}", [0.0, 0.0, 0.0, 1.0, 0.0]],
     "WM": [f"Gain Margin = {gm_db:.0f}dB",  [0.0, 0.0, 0.0, 0.0, 1.0]],
