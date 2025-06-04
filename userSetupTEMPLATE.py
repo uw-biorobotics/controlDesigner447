@@ -27,7 +27,7 @@ task = cd447.process_cmd_line(sys.argv,allowedTasks)
 
 ###############################################
 # #
-#    Plant Setup
+#    Plant Definition Here
 #
 
 Plant = 2.4/((s+2)*(s+4))   # just an example system
@@ -35,11 +35,10 @@ Plant = 2.4/((s+2)*(s+4))   # just an example system
 
 ############################################### controller setup section
 #
-#    Controller Setup
+#    Controller Name
 #
-#   controller info goes in a dictionary:
+#        Give your controller a descriptive name (replace string below)
 #
-
 controllerD = {}   # a dictionary to hold all control design parameters
 controllerD['Name'] = 'Template File for Control Design Setup'
 
@@ -51,11 +50,14 @@ controllerD['Name'] = 'Template File for Control Design Setup'
 
 # two simple controller options:
 
+###################################
 # 1) Constant single gain controller
+
 #          The simplest possible controller but limited power
 # controllerD['Ctype']  = 'Kct'  # a single gain controller
 # controllerD['Params'] = [ 1000 ]  # example K=4
 
+###################################
 # 2) Lead-Lag Compensator
 #          A widely used basic controller
 # controllerD['Ctype'] = 'LLC'  # lead/lag compensator controller
@@ -65,15 +67,18 @@ controllerD['Name'] = 'Template File for Control Design Setup'
 
 
 #############################
-#
-# PID Controller
-#        As used by 99% of industrial controllers
+# 3) PID Controller
+#       () As used by 99% of industrial controllers )
 controllerD['Ctype'] = 'PID'
 # flags (do not change these here)
-PIDgains = False
-PIDZeros = False
+PIDgains = False  # do not change
+PIDZeros = False  # do not change
+
+
+
 ##############################
-#         Examples:   Two ways to initialize the PID controller
+#
+#    Two ways to initialize the PID controller
 #
 
 #
@@ -93,8 +98,7 @@ PIDZeros = False
 # z2 = -12
 #############################
 
-#
-##############################################################  End of controller setup section
+#########################  End of controller setup section  ##################
 
 
 
@@ -102,45 +106,33 @@ PIDZeros = False
 
 ##############################################################################
 ##############################################################################
-#   Demo problem using PID controller:
-#
-#   Example Problem solving sequence for a PID controller with the plant above
+#   Workspace logs here (as comments)
+#      This is a hand place to document your results
 #
 
-# 1)  Our first controller guess is based on a "manual" design:
+# 1)  Explain how you start off your design.  For example:
 # PIDZeros = True   # this tells system we start with gains Kd, z1, z2
 # Kd = 1.0
 # z1 = -6 + 6j
 # z2 = cc(z1)
 
-# 2)  We got a reasonable (but slow) step response clicking at Kd=0.06.  Let's
-#     do a broad search around resulting gains: K_pid = [.72, 4.32, .06]
-#     using the "Optimize" verb with search range 50, and 15 values (est 0.76 min)
-PIDgains = True
-Kp=0.72
-Ki=4.32
-Kd=0.06
+# 2)  Summarize key results of first step
 
-# 3)  Pretty close step response is achieved with the "WSO" result:
-#              Kp:   36.000 Ki: 76.1 Kd:    3.000
-#
+# 3) further iterations
 
-#
-#        End of example.   (would do a couple more optimization rounds
-#                           a for real problem)
-#   a very nice result was achieved at  Kp: 72.000 Ki:  101.594 Kd:    3.780
-#
 
-##############################################################################
-##############################################################################
+####################### End of Workspace Log Section ###########################
+################################################################################
 
 
 #
 # set up regularization pole (make C(s) proper)
 #
+#  (25 is a default value that works for most systems)
 controllerD['RegSep'] = 25  # how far to separate regularization pole from most negative real part
 
 
+############### PID Controller automated sanity checks (do not modify)  ################
 if controllerD['Ctype'] =='PID':
     # flag chooses between how we initialize PID controller:
     if PIDgains and PIDZeros:
@@ -163,6 +155,7 @@ if controllerD['Ctype'] =='PID':
 # instantiate the controller based on parameter dictionary
 contObj = cd447.controller(controllerD) # instantiate the controller as above
 
+##########################   end of PID sanity Checks  #################################
 
 
 ###############################################
@@ -173,19 +166,33 @@ contObj = cd447.controller(controllerD) # instantiate the controller as above
 SPd = {}
 SPd['Name'] = 'SearchSetup: ' + controllerD['Name']
 
+#
+#    Your performance specs go here
+#
 # Desired Performance target
 SPd['tsd']         =   0.6  # Desired settling time (sec)
 SPd['pod']         =  0.20  # # Desired overshoot ratio (e.g. 10%=0.10)
 SPd['ssed']        =  0.01  # Desired steady state error
+#  (below are default values if you do not have Control Effort or Gain Margin Specs.)
 SPd['cu_max']      =   200  # Desired Maximum control effort (arbitrary units)
 SPd['gm_db']       =    20  # Desired gain margin in dB (positive = stable)
 
+#
+#   Set up your search below
+#
 # Search Parameters
 SPd['scale_range'] =  2   # Search range multiplier ('width' of search)
 SPd['nvals']       =  15   # Number of points per parameter (# grid points)
+SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
+
+#  Simulation parameters (probably don't need to change)
 SPd['tmax']        =  4*SPd['tsd']    #maximum simulation time
 SPd['dt']          =  1/500          # Time step ( heuristic)
-SPd['reportScheme']=  'WSO'  # which weights to print the limit-report on ('WSO' = TS + %OS)
+
+###################################################################################
+##############     End of user inputs  ############################################
+###################################################################################
+
 
 # do not change these:
 SPd['Plant_TF'] = Plant
@@ -229,7 +236,7 @@ if task == 'Optimize':
     x = input('Do you want to graph step responses? <CR>')
     cd447.graphResults(searchResD, 'ECE447 Example Optimizations: all schemes'+contObj.ctype)
 
-    graph2Selection = ['WOS', 'Wbal','WSSE']
+    graph2Selection = ['WSO', 'Wbal','WSSE']
     cd447.graphResults(searchResD, 'ECE447 Example Optimizations: selected: '+contObj.ctype, wsnames=graph2Selection)
     plt.show()
 
